@@ -18,11 +18,11 @@
   <!-- Servlet Mappings -->
   <servlet-mapping>
     <servlet-name>googleAuthServlet</servlet-name>
-    <url-pattern>googleAuth</url-pattern>
+    <url-pattern>/baseapp/googleAuth</url-pattern>
   </servlet-mapping>
   <servlet-mapping>
     <servlet-name>facebookAuthServlet</servlet-name>
-    <url-pattern>facebookAuth</url-pattern>
+    <url-pattern>/baseapp/facebookAuth</url-pattern>
   </servlet-mapping>
 
   <!-- Default page to serve -->
