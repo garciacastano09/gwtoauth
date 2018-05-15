@@ -7,22 +7,22 @@
 
   <!-- Servlets -->
   <servlet>
-    <servlet-name>greetServlet</servlet-name>
-    <servlet-class>jgc.asai.gwtoauth.server.GreetingServiceImpl</servlet-class>
-  </servlet>
-  <servlet>
     <servlet-name>googleAuthServlet</servlet-name>
     <servlet-class>jgc.asai.gwtoauth.server.GoogleAuthServiceImpl</servlet-class>
+  </servlet>
+  <servlet>
+    <servlet-name>facebookAuthServlet</servlet-name>
+    <servlet-class>jgc.asai.gwtoauth.server.FacebookAuthServiceImpl</servlet-class>
   </servlet>
 
   <!-- Servlet Mappings -->
   <servlet-mapping>
-    <servlet-name>greetServlet</servlet-name>
-    <url-pattern>/baseapp/greet</url-pattern>
+    <servlet-name>googleAuthServlet</servlet-name>
+    <url-pattern>googleAuth</url-pattern>
   </servlet-mapping>
   <servlet-mapping>
-    <servlet-name>googleAuthServlet</servlet-name>
-    <url-pattern>/baseapp/googleAuth</url-pattern>
+    <servlet-name>facebookAuthServlet</servlet-name>
+    <url-pattern>facebookAuth</url-pattern>
   </servlet-mapping>
 
   <!-- Default page to serve -->

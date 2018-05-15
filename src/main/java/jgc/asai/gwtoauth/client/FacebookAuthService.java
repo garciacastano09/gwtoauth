@@ -6,7 +6,7 @@ import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 /**
  * The client-side stub for the RPC service.
  */
-@RemoteServiceRelativePath("googleAuth")
-public interface GoogleAuthService extends RemoteService {
-  String googleAuthServer(String name) throws IllegalArgumentException;
+@RemoteServiceRelativePath("facebookAuth")
+public interface FacebookAuthService extends RemoteService {
+  String facebookAuthServer(String name) throws IllegalArgumentException;
 }
