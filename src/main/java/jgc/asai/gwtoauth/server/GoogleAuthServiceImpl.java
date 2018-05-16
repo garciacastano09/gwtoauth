@@ -1,5 +1,13 @@
 package jgc.asai.gwtoauth.server;
 
+import com.github.scribejava.apis.GoogleApi20;
+import com.github.scribejava.core.builder.ServiceBuilder;
+import com.github.scribejava.core.model.OAuth2AccessToken;
+import com.github.scribejava.core.model.OAuthRequest;
+import com.github.scribejava.core.model.Response;
+import com.github.scribejava.core.model.Verb;
+import com.github.scribejava.core.oauth.OAuth20Service;
+import com.google.gwt.http.client.Request;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import jgc.asai.gwtoauth.client.GoogleAuthService;
 import jgc.asai.gwtoauth.shared.LoginInfo;
@@ -12,6 +20,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -27,26 +39,58 @@ import org.codehaus.jackson.JsonToken;
 public class GoogleAuthServiceImpl extends RemoteServiceServlet implements GoogleAuthService {
   private final Logger logger = java.util.logging.Logger.getLogger("GoogleAuthServiceImpl");
 
+  private final String clientId = "276349452111-joj2vs62nk72aglcocpl190lookiu8vs.apps.googleusercontent.com";
+  private final String clientSecret = "wFpgzM6H6Begphf-7ARA9daJ";
+  private final String secretState = "secret" + new Random().nextInt(999_999);
+  private final OAuth20Service service = new ServiceBuilder(clientId)
+          .apiSecret(clientSecret)
+          .scope("profile") // replace with desired scope
+          .state(secretState)
+          .callback("http://127.0.0.1:8888/googleOauthCallback")
+          .build(GoogleApi20.instance());
+  private OAuth2AccessToken accessToken;
+
   @Override
   public String googleAuthServer(String name) throws IllegalArgumentException {
-    String serverInfo = getServletContext().getServerInfo();
-    String userAgent = getThreadLocalRequest().getHeader("User-Agent");
-
-    // Escape data from the client to avoid cross-site script vulnerabilities.
-    name = escapeHtml(name);
-    userAgent = escapeHtml(userAgent);
-
-    return "Hello, " + name + "!<br><br>I am running " + serverInfo
-            + ".<br><br>It looks like you are using:<br>" + userAgent;
+//    String serverInfo = getServletContext().getServerInfo();
+//    String userAgent = getThreadLocalRequest().getHeader("User-Agent");
+//
+//    // Escape data from the client to avoid cross-site script vulnerabilities.
+//    name = escapeHtml(name);
+//    userAgent = escapeHtml(userAgent);
+//
+//    return "Hello, " + name + "!<br><br>I am running " + serverInfo
+//            + ".<br><br>It looks like you are using:<br>" + userAgent;
+    final Map<String, String> additionalParams = new HashMap<>();
+    additionalParams.put("access_type", "offline");
+    //force to reget refresh token (if usera are asked not the first time)
+    additionalParams.put("prompt", "consent");
+    final String authorizationUrl = service.getAuthorizationUrl(additionalParams);
+    return authorizationUrl;
   }
 
-  /**
-   * Escape an html string. Escaping data received from the client helps to
-   * prevent cross-site script vulnerabilities.
-   *
-   * @param html the html string to escape
-   * @return the escaped string
-   */
+  @Override
+  public String googleOauthCallback(String code, String secretState) throws IllegalArgumentException, InterruptedException, ExecutionException, IOException {
+    accessToken = service.getAccessToken(code);
+    accessToken = service.refreshAccessToken(accessToken.getRefreshToken());
+    return accessToken.getRawResponse();
+  }
+
+  @Override
+  public String googleGetResource() throws IllegalArgumentException, InterruptedException, ExecutionException, IOException {
+    final OAuthRequest request = new OAuthRequest(Verb.GET,"https://www.googleapis.com/plus/v1/people/me");
+    service.signRequest(accessToken, request);
+    final Response response = service.execute(request);
+    return response.getBody();
+  }
+
+    /**
+     * Escape an html string. Escaping data received from the client helps to
+     * prevent cross-site script vulnerabilities.
+     *
+     * @param html the html string to escape
+     * @return the escaped string
+     */
   private String escapeHtml(String html) {
     if (html == null) {
       return null;

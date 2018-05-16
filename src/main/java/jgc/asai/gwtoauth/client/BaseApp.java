@@ -1,18 +1,12 @@
 package jgc.asai.gwtoauth.client;
 
-import com.google.gwt.core.client.Callback;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.event.dom.client.LoadEvent;
-import com.google.gwt.event.dom.client.LoadHandler;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.*;
-
 import java.util.logging.Logger;
-import com.google.api.gwt.oauth2.client.Auth;
-import com.google.api.gwt.oauth2.client.AuthRequest;
 import jgc.asai.gwtoauth.shared.LoginInfo;
 
 /**
@@ -29,11 +23,6 @@ public class BaseApp implements EntryPoint {
           + "connection and try again.";
   private final GoogleAuthServiceAsync googleAuthService = GWT.create(GoogleAuthService.class);
   private final FacebookAuthServiceAsync facebookAuthServer = GWT.create(FacebookAuthService.class);
-
-  private static final Auth GOOGLE_AUTH = Auth.get();
-  private static final String GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/auth";
-  private static final String GOOGLE_CLIENT_ID = "276349452111-joj2vs62nk72aglcocpl190lookiu8vs.apps.googleusercontent.com";
-  private static final String PLUS_ME_SCOPE = "https://www.googleapis.com/auth/userinfo.profile";
 
   private final HorizontalPanel loginPanel = new HorizontalPanel();
   private final Anchor signInLink = new Anchor("");
@@ -84,27 +73,6 @@ public class BaseApp implements EntryPoint {
     loginImage.getElement().setClassName("login-area");
     loginPanel.add(signInLink);
 
-    final StringBuilder userEmail = new StringBuilder();
-    googleAuthService.login(GWT.getHostPageBaseURL(), new AsyncCallback<LoginInfo>() {
-      @Override
-      public void onFailure(final Throwable caught) {
-        logger.severe("login -> onFailure");
-        logger.severe(caught.getMessage());
-      }
-
-      @Override
-      public void onSuccess(final LoginInfo result) {
-        logger.info("login -> onSuccess");
-        if (result.getName() != null && !result.getName().isEmpty()) {
-          addGoogleAuthHelper();
-          loadLogout(result);
-          nameField.setEnabled(true);
-        } else {
-          loadLogin(result);
-        }
-        userEmail.append(result.getEmailAddress());
-      }
-    });
     googleButton.addClickHandler(new GoogleHandler());
     facebookButton.addClickHandler(new FacebookHandler());
 
@@ -128,57 +96,6 @@ public class BaseApp implements EntryPoint {
     signInLink.setHref(loginInfo.getLogoutUrl());
     signInLink.setText(loginInfo.getName());
     signInLink.setTitle("Sign out");
-  }
-
-  private void addGoogleAuthHelper() {
-    final AuthRequest req = new AuthRequest(GOOGLE_AUTH_URL, GOOGLE_CLIENT_ID).withScopes(PLUS_ME_SCOPE);
-    GOOGLE_AUTH.login(req, new Callback<String, Throwable>() {
-      @Override
-      public void onSuccess(final String token) {
-        if (!token.isEmpty()) {
-          googleAuthService.loginDetails(token, new AsyncCallback<LoginInfo>() {
-            @Override
-            public void onFailure(final Throwable caught) {
-              logger.severe("loginDetails -> onFailure");
-            }
-
-            @Override
-            public void onSuccess(final LoginInfo loginInfo) {
-              logger.info("loginDetails -> onSuccess");
-              signInLink.setText(loginInfo.getName());
-              nameField.setText(loginInfo.getName());
-              signInLink.setStyleName("login-area");
-              loginImage.setUrl(loginInfo.getPictureUrl());
-              loginImage.setVisible(false);
-              loginPanel.add(loginImage);
-              loginImage.addLoadHandler(new LoadHandler() {
-                @Override
-                public void onLoad(final LoadEvent event) {
-                  final int newWidth = 24;
-                  final com.google.gwt.dom.client.Element element = event
-                          .getRelativeElement();
-                  if (element.equals(loginImage.getElement())) {
-                    final int originalHeight = loginImage.getOffsetHeight();
-                    final int originalWidth = loginImage.getOffsetWidth();
-                    if (originalHeight > originalWidth) {
-                      loginImage.setHeight(newWidth + "px");
-                    } else {
-                      loginImage.setWidth(newWidth + "px");
-                    }
-                    loginImage.setVisible(true);
-                  }
-                }
-              });
-            }
-          });
-        }
-      }
-
-      @Override
-      public void onFailure(final Throwable caught) {
-        logger.severe("Error -> loginDetails\n" + caught.getMessage());
-      }
-    });
   }
 
   class GoogleHandler implements ClickHandler {
