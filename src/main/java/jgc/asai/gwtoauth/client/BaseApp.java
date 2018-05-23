@@ -8,14 +8,11 @@ import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.*;
 import jgc.asai.gwtoauth.shared.Credential;
-import org.codehaus.jackson.map.Serializers;
-
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
+import jgc.asai.gwtoauth.shared.JGCException;
 import java.util.logging.Logger;
 
 import static jgc.asai.gwtoauth.client.Utils.GOOGLE;
-import static jgc.asai.gwtoauth.server.GoogleAuthServiceImpl.CALLBACK_URL;
+import static jgc.asai.gwtoauth.shared.UrlResources.CALLBACK_URL;
 
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
@@ -33,18 +30,23 @@ public class BaseApp implements EntryPoint {
   private final GoogleAuthServiceAsync googleAuthService = GWT.create(GoogleAuthService.class);
   private final FacebookAuthServiceAsync facebookAuthServer = GWT.create(FacebookAuthService.class);
 
+  private final ListBox googleApiList = new ListBox();
   private final HorizontalPanel loginPanel = new HorizontalPanel();
   private final Anchor signInLink = new Anchor("");
   private final Image loginImage = new Image();
   private final TextBox nameField = new TextBox();
   private final Button googleButton = new Button("Login Google");
+  private final Button toggleResponseRawNice = new Button();
   private final Button getGoogleResourceButton = new Button("Get Google Resource");
   private final Button facebookButton = new Button("Facebook");
   private final Label errorLabel = new Label();
   private final DialogBox dialogBox = new DialogBox();
-  private final VerticalPanel googleResponsePanel = new VerticalPanel();
+  private final VerticalPanel rawResponsePanel = new VerticalPanel();
+  private final VerticalPanel niceResponsePanel = new VerticalPanel();
   private final VerticalPanel dialogVPanel = new VerticalPanel();
   private final Button closeDialogButton = new Button("Close");
+
+  private Boolean niceOutput = false;
 
   private static BaseApp singleton;
 
@@ -55,32 +57,33 @@ public class BaseApp implements EntryPoint {
   public void onModuleLoad() {
     singleton = this;
 
-    nameField.setText("GWT User");
-    nameField.setFocus(true);
-    nameField.selectAll();
-    nameField.setVisible(false);
+//    nameField.setText("GWT User");
+//    nameField.setFocus(true);
+//    nameField.selectAll();
+//    nameField.setVisible(false);
 
-    dialogBox.setText("Remote Procedure Call");
-    dialogBox.setAnimationEnabled(true);
+//    dialogBox.setText("Remote Procedure Call");
+//    dialogBox.setAnimationEnabled(true);
+//
+//    closeDialogButton.getElement().setId("closeButton");
+//    closeDialogButton.addClickHandler(event -> dialogBox.hide());
+//
+//    final Label textToServerLabel = new Label();
+//    final HTML serverResponseLabel = new HTML();
+//    dialogVPanel.addStyleName("dialogVPanel");
+//    dialogVPanel.add(new HTML("<b>Sending name to the server:</b>"));
+//    dialogVPanel.add(textToServerLabel);
+//    dialogVPanel.add(new HTML("<br><b>Server replies:</b>"));
+//    dialogVPanel.add(serverResponseLabel);
+//    dialogVPanel.setHorizontalAlignment(VerticalPanel.ALIGN_RIGHT);
+//    dialogVPanel.add(closeDialogButton);
+//    dialogBox.setWidget(dialogVPanel);
 
-    closeDialogButton.getElement().setId("closeButton");
-    closeDialogButton.addClickHandler(event -> dialogBox.hide());
+    rawResponsePanel.setHorizontalAlignment(VerticalPanel.ALIGN_LEFT);
+    rawResponsePanel.setVisible(false);
 
-    final Label textToServerLabel = new Label();
-    final HTML serverResponseLabel = new HTML();
-    dialogVPanel.addStyleName("dialogVPanel");
-    dialogVPanel.add(new HTML("<b>Sending name to the server:</b>"));
-    dialogVPanel.add(textToServerLabel);
-    dialogVPanel.add(new HTML("<br><b>Server replies:</b>"));
-    dialogVPanel.add(serverResponseLabel);
-    dialogVPanel.setHorizontalAlignment(VerticalPanel.ALIGN_RIGHT);
-    dialogVPanel.add(closeDialogButton);
-    dialogBox.setWidget(dialogVPanel);
-
-    googleResponsePanel.addStyleName("googleResponsePanel");
-    googleResponsePanel.add(new HTML("<b>Google says:</b>"));
-    googleResponsePanel.setHorizontalAlignment(VerticalPanel.ALIGN_RIGHT);
-    googleResponsePanel.setVisible(false);
+    niceResponsePanel.setHorizontalAlignment(VerticalPanel.ALIGN_LEFT);
+    niceResponsePanel.setVisible(false);
 
     signInLink.getElement().setClassName("login-area");
     signInLink.setTitle("sign out");
@@ -88,12 +91,25 @@ public class BaseApp implements EntryPoint {
     loginPanel.add(signInLink);
 
     googleButton.addClickHandler(new GoogleHandler());
+    googleButton.setVisible(true);
+
     getGoogleResourceButton.addClickHandler(new GoogleGetResourceHandler());
+    getGoogleResourceButton.setVisible(false);
+
+    toggleResponseRawNice.addClickHandler(new ToggleResponseRawNiceHandler());
+    toggleResponseRawNice.setVisible(false);
+
     facebookButton.addClickHandler(new FacebookHandler());
     facebookButton.setVisible(false);
 
-    RootPanel.get("googleResponsePanel").add(googleResponsePanel);
-    RootPanel.get("nameFieldContainer").add(nameField);
+    googleApiList.addItem("Google Plus");
+    googleApiList.addItem("Google Drive");
+    googleApiList.setVisible(false);
+
+    RootPanel.get("toggleResponseRawNice").add(toggleResponseRawNice);
+    RootPanel.get("rawResponsePanel").add(rawResponsePanel);
+    RootPanel.get("niceResponsePanel").add(niceResponsePanel);
+    RootPanel.get("googleApiList").add(googleApiList);
     RootPanel.get("googleButtonContainer").add(googleButton);
     RootPanel.get("getGoogleResourceButton").add(getGoogleResourceButton);
     RootPanel.get("facebookButtonContainer").add(facebookButton);
@@ -139,11 +155,12 @@ public class BaseApp implements EntryPoint {
             @Override
             public void onSuccess(String s) {
               logger.info("Access Token="+s);
-              googleResponsePanel.clear();
-              googleResponsePanel.add(new HTML(s));
-              googleResponsePanel.setVisible(true);
+              rawResponsePanel.clear();
+              rawResponsePanel.add(new HTML(s));
+              rawResponsePanel.setVisible(true);
               googleButton.setVisible(false);
               getGoogleResourceButton.setVisible(true);
+              googleApiList.setVisible(true);
             }
           });
         } catch (Exception e) {e.printStackTrace();}
@@ -152,18 +169,44 @@ public class BaseApp implements EntryPoint {
 //    updateLoginStatus();
   }
 
+  public Boolean getNiceOutput() {
+    return niceOutput;
+  }
+
+  public void setNiceOutput(Boolean niceOutput) {
+    this.niceOutput = niceOutput;
+  }
+
 
   class GoogleHandler implements ClickHandler {
     public void onClick(ClickEvent event) {
-//      authGoogle();
       BaseApp.get().getAuthorizationUrl(GOOGLE);
+    }
+  }
+
+  class ToggleResponseRawNiceHandler implements ClickHandler {
+    public void onClick(ClickEvent event) {
+//    Toggle from nice to raw
+      if(BaseApp.get().getNiceOutput()){
+        toggleResponseRawNice.setHTML("See Nice View");
+        rawResponsePanel.setVisible(true);
+        niceResponsePanel.setVisible(false);
+        BaseApp.get().setNiceOutput(false);
+      }
+//    Toggle from raw to nice
+      else {
+        toggleResponseRawNice.setHTML("See Raw View");
+        rawResponsePanel.setVisible(false);
+        niceResponsePanel.setVisible(true);
+        BaseApp.get().setNiceOutput(true);
+      }
     }
   }
 
   class GoogleGetResourceHandler implements ClickHandler {
     public void onClick(ClickEvent event) {
       try {
-        googleAuthService.googleGetResource(new AsyncCallback<String>() {
+        googleAuthService.googleGetResource(Utils.getApiName(googleApiList.getSelectedItemText()), new AsyncCallback<String>() {
           @Override
           public void onFailure(Throwable throwable) {
             throwable.printStackTrace();
@@ -171,9 +214,14 @@ public class BaseApp implements EntryPoint {
           @Override
           public void onSuccess(String s) {
             logger.info("resource="+s);
-            googleResponsePanel.clear();
-            googleResponsePanel.add(new HTML(s));
-            googleResponsePanel.setVisible(true);
+            toggleResponseRawNice.setVisible(true);
+            if (BaseApp.get().getNiceOutput()){
+              niceResponsePanel.clear();
+              niceResponsePanel.add(new HTML(s));
+            } else {
+              rawResponsePanel.clear();
+              rawResponsePanel.add(new HTML(s));
+            }
           }
         });
       } catch (Exception e) {
@@ -211,20 +259,24 @@ public class BaseApp implements EntryPoint {
     credential.setAuthProvider(authProvider);
 
     if(authProvider.equals(GOOGLE)){
-      googleAuthService.getGoogleAuthorizationUrl(credential, new AsyncCallback<String>(){
-        @Override
-        public void onSuccess(String authorizationUrl){
-          logger.info("Authorization url: " + authorizationUrl);
-          Utils.clearCookies();
-          Utils.saveAuthProvider(authProvider);
-          Utils.saveRediretUrl(CALLBACK_URL);
-          Utils.redirect(authorizationUrl);
-        }
-        @Override
-        public void onFailure(Throwable caught){
-          caught.printStackTrace();
-        }
-      });
+      try {
+        googleAuthService.getGoogleAuthorizationUrl(credential, new AsyncCallback<String>(){
+          @Override
+          public void onSuccess(String authorizationUrl){
+            logger.info("Authorization url: " + authorizationUrl);
+            Utils.clearCookies();
+            Utils.saveAuthProvider(authProvider);
+            Utils.saveRediretUrl(CALLBACK_URL);
+            Utils.redirect(authorizationUrl);
+          }
+          @Override
+          public void onFailure(Throwable caught){
+            caught.printStackTrace();
+          }
+        });
+      } catch (JGCException e) {
+        e.printStackTrace();
+      }
     }
   }
 }

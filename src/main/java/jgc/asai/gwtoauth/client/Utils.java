@@ -2,6 +2,8 @@ package jgc.asai.gwtoauth.client;
 
 import com.google.gwt.user.client.Cookies;
 import com.google.gwt.user.client.Window;
+import jgc.asai.gwtoauth.shared.UrlResources;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -19,15 +21,38 @@ public class Utils {
 
     public final static String FACEBOOK = "facebook";
     public final static String GOOGLE = "google";
+    public final static String GOOGLE_PLUS = "google plus";
+    public final static String GOOGLE_DRIVE = "google drive";
     public final static String DEFAULT = "default";
+    public final static String UNKNOWN = "unknown";
 
     public static String getAuthProviderName(String authProvider){
         logger.info("getAuthProviderName");
         if (authProvider.toLowerCase().equals(FACEBOOK))
-            return "Facebook";
+            return FACEBOOK;
         else if (authProvider.toLowerCase().equals(GOOGLE))
-            return "Google";
+            return GOOGLE;
         return DEFAULT;
+    }
+
+    public static String getApiName(String apiName){
+        logger.info("getApiName: "+apiName);
+        if (apiName.toLowerCase().equals(GOOGLE_PLUS))
+            return GOOGLE_PLUS;
+        else if (apiName.toLowerCase().equals(GOOGLE_DRIVE))
+            return GOOGLE_DRIVE;
+        return UNKNOWN;
+    }
+
+    public static String getUrlResource(String apiName){
+        logger.info("getUrlResource: "+apiName);
+        switch(apiName){
+            case GOOGLE_DRIVE:
+                return UrlResources.GOOGLE_DRIVE_FILES;
+            case GOOGLE_PLUS:
+                return UrlResources.GOOGLE_PLUS_ME;
+        }
+        return UNKNOWN;
     }
 
     public static String getSessionIdFromCookie(){

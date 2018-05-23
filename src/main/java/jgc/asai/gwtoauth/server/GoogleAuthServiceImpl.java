@@ -8,6 +8,7 @@ import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import jgc.asai.gwtoauth.client.GoogleAuthService;
 import jgc.asai.gwtoauth.client.Utils;
 import jgc.asai.gwtoauth.shared.Credential;
+import jgc.asai.gwtoauth.shared.JGCException;
 
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
@@ -17,6 +18,10 @@ import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
+import static jgc.asai.gwtoauth.shared.ApiScopes.GOOGLE_DRIVE_FILES;
+import static jgc.asai.gwtoauth.shared.ApiScopes.GOOGLE_PLUS_USER_INFO_PROFILE;
+import static jgc.asai.gwtoauth.shared.UrlResources.CALLBACK_URL;
+
 /**
  * The server-side implementation of the RPC service.
  */
@@ -24,14 +29,14 @@ import java.util.logging.Logger;
 public class GoogleAuthServiceImpl extends RemoteServiceServlet implements GoogleAuthService {
   private final Logger logger = java.util.logging.Logger.getLogger("GoogleAuthServiceImpl");
 
-  public static final String CALLBACK_URL = "http://127.0.0.1:8888/BaseApp.html";
-
   private final String clientId = "276349452111-joj2vs62nk72aglcocpl190lookiu8vs.apps.googleusercontent.com";
   private final String clientSecret = "wFpgzM6H6Begphf-7ARA9daJ";
   private final String secretState = "secret" + new Random().nextInt(999_999);
   private final OAuth20Service service = new ServiceBuilder(clientId)
           .apiSecret(clientSecret)
-          .scope("profile") // replace with desired scope
+//          .scope("https://www.googleapis.com/auth/userinfo.profile")
+          .scope(GOOGLE_PLUS_USER_INFO_PROFILE + " " + GOOGLE_DRIVE_FILES)
+//          .scope("profile") // replace with desired scope
           .state(secretState)
           .callback(CALLBACK_URL)
           .build(GoogleApi20.instance());
@@ -54,18 +59,17 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
 
 
   @Override
-  public String googleAuthServer() throws IllegalArgumentException {
+  public String googleAuthServer(){
     logger.info("googleAuthServer");
     final Map<String, String> additionalParams = new HashMap<>();
     additionalParams.put("access_type", "offline");
-    //force to reget refresh token (if usera are asked not the first time)
     additionalParams.put("prompt", "consent");
     final String authorizationUrl = service.getAuthorizationUrl(additionalParams);
     return authorizationUrl;
   }
 
   @Override
-  public String googleAccessToken(String code, String secretState) throws IllegalArgumentException, InterruptedException, ExecutionException, IOException {
+  public String googleAccessToken(String code, String secretState) throws InterruptedException, ExecutionException, IOException {
     logger.info("googleOauthCallback code:"+code+" secretState:"+secretState);
     accessToken = service.getAccessToken(code);
     accessToken = service.refreshAccessToken(accessToken.getRefreshToken());
@@ -73,16 +77,16 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
   }
 
   @Override
-  public String googleGetResource() throws IllegalArgumentException, InterruptedException, ExecutionException, IOException {
+  public String googleGetResource(String apiName) throws InterruptedException, ExecutionException, IOException {
     logger.info("googleGetResource");
-    final OAuthRequest request = new OAuthRequest(Verb.GET,"https://www.googleapis.com/plus/v1/people/me");
+    final OAuthRequest request = new OAuthRequest(Verb.GET, Utils.getUrlResource(apiName));
     service.signRequest(accessToken, request);
     final Response response = service.execute(request);
     logger.info("googleGetResource response.getBody: "+response.getBody());
     return response.getBody();
   }
 
-  public String getGoogleAuthorizationUrl(Credential credential) throws Exception{
+  public String getGoogleAuthorizationUrl(Credential credential) throws JGCException {
     logger.info("callback url: " + credential.getRedirectUrl());
     String authorizationUrl = null;
     Token requestToken = null;
@@ -90,7 +94,7 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
     String authProvider = credential.getAuthProvider();
 
     if (service == null){
-      throw new Exception("Could not build OAuthService");
+      throw new JGCException("Could not build OAuthService");
     }
 
     logger.info("Getting Authorization url...");
@@ -117,7 +121,7 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
     catch(Exception e)
     {
       logger.severe("Exception caught: " + e);
-      throw new Exception("Could not get Authorization url: " + e.getMessage());
+      throw new JGCException("Could not get Authorization url: " + e.getMessage());
     }
 
     logger.info("Returning: " + authorizationUrl);
