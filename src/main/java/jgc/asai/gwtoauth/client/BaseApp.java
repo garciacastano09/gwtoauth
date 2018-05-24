@@ -4,6 +4,7 @@ import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.*;
@@ -43,9 +44,9 @@ public class BaseApp implements EntryPoint {
   private final DialogBox dialogBox = new DialogBox();
   private final VerticalPanel rawResponsePanel = new VerticalPanel();
   private final VerticalPanel niceResponsePanel = new VerticalPanel();
-  private final VerticalPanel dialogVPanel = new VerticalPanel();
   private final Button closeDialogButton = new Button("Close");
 
+  private JSONString response;
   private Boolean niceOutput = false;
 
   private static BaseApp singleton;
@@ -56,28 +57,6 @@ public class BaseApp implements EntryPoint {
 
   public void onModuleLoad() {
     singleton = this;
-
-//    nameField.setText("GWT User");
-//    nameField.setFocus(true);
-//    nameField.selectAll();
-//    nameField.setVisible(false);
-
-//    dialogBox.setText("Remote Procedure Call");
-//    dialogBox.setAnimationEnabled(true);
-//
-//    closeDialogButton.getElement().setId("closeButton");
-//    closeDialogButton.addClickHandler(event -> dialogBox.hide());
-//
-//    final Label textToServerLabel = new Label();
-//    final HTML serverResponseLabel = new HTML();
-//    dialogVPanel.addStyleName("dialogVPanel");
-//    dialogVPanel.add(new HTML("<b>Sending name to the server:</b>"));
-//    dialogVPanel.add(textToServerLabel);
-//    dialogVPanel.add(new HTML("<br><b>Server replies:</b>"));
-//    dialogVPanel.add(serverResponseLabel);
-//    dialogVPanel.setHorizontalAlignment(VerticalPanel.ALIGN_RIGHT);
-//    dialogVPanel.add(closeDialogButton);
-//    dialogBox.setWidget(dialogVPanel);
 
     rawResponsePanel.setHorizontalAlignment(VerticalPanel.ALIGN_LEFT);
     rawResponsePanel.setVisible(false);
@@ -175,6 +154,28 @@ public class BaseApp implements EntryPoint {
 
   public void setNiceOutput(Boolean niceOutput) {
     this.niceOutput = niceOutput;
+    niceResponsePanel.setVisible(niceOutput);
+    rawResponsePanel.setVisible(!niceOutput);
+    toggleResponseRawNice.setVisible(true);
+    if (niceOutput) toggleResponseRawNice.setHTML("See Raw");
+    else toggleResponseRawNice.setHTML("See Nice");
+  }
+
+  public JSONString getResponse() {
+    return response;
+  }
+
+  public void setResponse(JSONString response) {
+    this.response = response;
+  }
+
+  public void updateResponseUI(String r){
+    this.setResponse(new JSONString(r));
+    rawResponsePanel.clear();
+    rawResponsePanel.add(new HTML(this.getResponse().stringValue()));
+    niceResponsePanel.clear();
+    niceResponsePanel.add(new HTML("A falta de dejar nice: "+this.getResponse().stringValue()));
+    this.setNiceOutput(true);
   }
 
 
@@ -188,16 +189,10 @@ public class BaseApp implements EntryPoint {
     public void onClick(ClickEvent event) {
 //    Toggle from nice to raw
       if(BaseApp.get().getNiceOutput()){
-        toggleResponseRawNice.setHTML("See Nice View");
-        rawResponsePanel.setVisible(true);
-        niceResponsePanel.setVisible(false);
         BaseApp.get().setNiceOutput(false);
       }
 //    Toggle from raw to nice
       else {
-        toggleResponseRawNice.setHTML("See Raw View");
-        rawResponsePanel.setVisible(false);
-        niceResponsePanel.setVisible(true);
         BaseApp.get().setNiceOutput(true);
       }
     }
@@ -214,14 +209,7 @@ public class BaseApp implements EntryPoint {
           @Override
           public void onSuccess(String s) {
             logger.info("resource="+s);
-            toggleResponseRawNice.setVisible(true);
-            if (BaseApp.get().getNiceOutput()){
-              niceResponsePanel.clear();
-              niceResponsePanel.add(new HTML(s));
-            } else {
-              rawResponsePanel.clear();
-              rawResponsePanel.add(new HTML(s));
-            }
+            updateResponseUI(s);
           }
         });
       } catch (Exception e) {
