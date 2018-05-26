@@ -1,5 +1,10 @@
 package jgc.asai.gwtoauth.shared;
 
+import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONValue;
+
+import java.util.ArrayList;
+
 public class GooglePlusIdentity {
     private String kind;
     private String etag;
@@ -134,4 +139,23 @@ public class GooglePlusIdentity {
     public void setVerified(String verified) {
         this.verified = verified;
     }
+
+    public static GooglePlusIdentity getProfileFromJSONString(JSONObject j){
+        return new GooglePlusIdentity(
+                j.get("kind").toString(),
+                j.get("etag").toString(),
+                j.get("objectType").toString(),
+                j.get("id").toString(),
+                j.get("displayName").toString(),
+                j.get("name").isObject().get("familyName").toString(),
+                j.get("name").isObject().get("givenName").toString(),
+                j.get("url").toString(),
+                j.get("image").isObject().get("url").toString(),
+                j.get("isPlusUser").toString(),
+                j.get("language").toString(),
+                j.get("circledByCount").toString(),
+                j.get("verified").toString()
+        );
+    }
+
 }

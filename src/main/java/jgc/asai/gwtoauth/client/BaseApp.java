@@ -12,6 +12,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.*;
 import jgc.asai.gwtoauth.shared.Credential;
 import jgc.asai.gwtoauth.shared.GoogleDriveFile;
+import jgc.asai.gwtoauth.shared.GooglePlusIdentity;
 import jgc.asai.gwtoauth.shared.JGCException;
 import com.google.gwt.core.client.JsonUtils;
 import java.util.ArrayList;
@@ -62,9 +63,13 @@ public class BaseApp implements EntryPoint {
   private final VerticalPanel niceResponsePanel = new VerticalPanel();
   private final Button closeDialogButton = new Button("Close");
 
-  private final VerticalPanel flexTableVerticalPanel = new VerticalPanel();
-  private final FlexTable flexTable = new FlexTable();
+//  private final VerticalPanel flexTableVerticalPanel = new VerticalPanel();
+
+  private final FlexTable googleDriveFlexTable = new FlexTable();
+  private final FlexTable googlePlusFlexTable = new FlexTable();
+
   private final CellTable<GoogleDriveFile> cellTableOfGoogleDriveFile = new CellTable<>();
+  private final CellTable<GooglePlusIdentity> cellTableOfGooglePlusProfile = new CellTable<>();
 
   private JSONObject response;
   private Boolean niceOutput = false;
@@ -84,10 +89,10 @@ public class BaseApp implements EntryPoint {
     niceResponsePanel.setHorizontalAlignment(VerticalPanel.ALIGN_LEFT);
     niceResponsePanel.setVisible(false);
 
-    signInLink.getElement().setClassName("login-area");
-    signInLink.setTitle("sign out");
-    loginImage.getElement().setClassName("login-area");
-    loginPanel.add(signInLink);
+//    signInLink.getElement().setClassName("login-area");
+//    signInLink.setTitle("sign out");
+//    loginImage.getElement().setClassName("login-area");
+//    loginPanel.add(signInLink);
 
     googleButton.addClickHandler(new GoogleHandler());
     googleButton.setVisible(true);
@@ -106,6 +111,7 @@ public class BaseApp implements EntryPoint {
     googleApiList.setVisible(false);
 
     createGoogleDriveFilesTable();
+    createGooglePlusProfileTable();
 
     RootPanel.get("toggleResponseRawNice").add(toggleResponseRawNice);
     RootPanel.get("rawResponsePanel").add(rawResponsePanel);
@@ -115,7 +121,7 @@ public class BaseApp implements EntryPoint {
     RootPanel.get("facebookButtonContainer").add(facebookButton);
     RootPanel.get("errorLabelContainer").add(errorLabel);
     RootPanel.get("loginPanelContainer").add(loginPanel);
-    RootPanel.get("niceResponsePanel").add(flexTableVerticalPanel);
+    RootPanel.get("niceResponsePanel").add(niceResponsePanel);
 
     handleRedirect();
   }
@@ -180,7 +186,7 @@ public class BaseApp implements EntryPoint {
       case Utils.GOOGLE_DRIVE:
         populateGoogleDriveTable(GoogleDriveFile.getFileListFromJSONString(this.getResponse()));
       case Utils.GOOGLE_PLUS:
-//        populateGooglePlusTable(GoogleDriveFile.getFileListFromJSONString(this.getResponse()));
+        populateGooglePlusTable(GooglePlusIdentity.getProfileFromJSONString(this.getResponse()));
     }
     this.setNiceOutput(true);
   }
@@ -334,10 +340,77 @@ public class BaseApp implements EntryPoint {
   private void populateGoogleDriveTable(ArrayList<GoogleDriveFile> files){
     cellTableOfGoogleDriveFile.setRowCount(files.size(), true);
     cellTableOfGoogleDriveFile.setRowData(0, files);
-    flexTableVerticalPanel.clear();
-    flexTableVerticalPanel.setBorderWidth(1);
-    flexTableVerticalPanel.add(flexTable);
-    flexTableVerticalPanel.add(cellTableOfGoogleDriveFile);
+    niceResponsePanel.clear();
+    niceResponsePanel.add(googleDriveFlexTable);
+    niceResponsePanel.add(cellTableOfGoogleDriveFile);
+  }
+
+  private void createGooglePlusProfileTable(){
+    // The policy that determines how keyboard selection will work. Keyboard
+    // selection is enabled.
+    cellTableOfGooglePlusProfile.setKeyboardSelectionPolicy(KeyboardSelectionPolicy.ENABLED);
+
+    // Add a text columns to show the details.
+    TextColumn<GooglePlusIdentity> columnFirstLine = new TextColumn<GooglePlusIdentity>() {
+      @Override
+      public String getValue(GooglePlusIdentity object) {
+        return object.getId();
+      }
+    };
+    cellTableOfGooglePlusProfile.addColumn(columnFirstLine, "ID");
+
+    TextColumn<GooglePlusIdentity> columnSecondLine = new TextColumn<GooglePlusIdentity>() {
+      @Override
+      public String getValue(GooglePlusIdentity object) {
+        return object.getGivenName();
+      }
+    };
+    cellTableOfGooglePlusProfile.addColumn(columnSecondLine, "Given Name");
+
+    TextColumn<GooglePlusIdentity> townColumn = new TextColumn<GooglePlusIdentity>() {
+      @Override
+      public String getValue(GooglePlusIdentity object) {
+        return object.getFamilyName();
+      }
+    };
+    cellTableOfGooglePlusProfile.addColumn(townColumn, "Family Name");
+
+    TextColumn<GooglePlusIdentity> countryColumn = new TextColumn<GooglePlusIdentity>() {
+      @Override
+      public String getValue(GooglePlusIdentity object) {
+        return object.getUrl();
+      }
+    };
+    cellTableOfGooglePlusProfile.addColumn(countryColumn, "URL");
+
+    TextColumn<GooglePlusIdentity> imageURL = new TextColumn<GooglePlusIdentity>() {
+      @Override
+      public String getValue(GooglePlusIdentity object) {
+        return object.getImageUrl();
+      }
+    };
+    cellTableOfGooglePlusProfile.addColumn(imageURL, "ImageURL");
+
+    TextColumn<GooglePlusIdentity> kind = new TextColumn<GooglePlusIdentity>() {
+      @Override
+      public String getValue(GooglePlusIdentity object) {
+        return object.getImageUrl();
+      }
+    };
+    cellTableOfGooglePlusProfile.addColumn(kind, "Kind");
+
+    final SingleSelectionModel<GooglePlusIdentity> selectionModel = new SingleSelectionModel<>();
+    cellTableOfGooglePlusProfile.setSelectionModel(selectionModel);
+  }
+
+  private void populateGooglePlusTable(GooglePlusIdentity profile){
+    ArrayList<GooglePlusIdentity> p = new ArrayList<>();
+    p.add(profile);
+    cellTableOfGooglePlusProfile.setRowCount(1, true);
+    cellTableOfGooglePlusProfile.setRowData(0, p);
+    niceResponsePanel.clear();
+    niceResponsePanel.add(googlePlusFlexTable);
+    niceResponsePanel.add(cellTableOfGooglePlusProfile);
   }
 }
 
