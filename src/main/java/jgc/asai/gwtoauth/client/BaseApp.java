@@ -2,11 +2,9 @@ package jgc.asai.gwtoauth.client;
 
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
-import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.*;
@@ -16,19 +14,16 @@ import jgc.asai.gwtoauth.shared.GooglePlusIdentity;
 import jgc.asai.gwtoauth.shared.JGCException;
 import com.google.gwt.core.client.JsonUtils;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Logger;
-import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.user.cellview.client.CellTable;
 import com.google.gwt.user.cellview.client.HasKeyboardSelectionPolicy.KeyboardSelectionPolicy;
 import com.google.gwt.user.cellview.client.TextColumn;
-import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.view.client.SelectionChangeEvent;
 import com.google.gwt.view.client.SingleSelectionModel;
 
+import static jgc.asai.gwtoauth.client.Utils.LINKEDIN;
 import static jgc.asai.gwtoauth.client.Utils.GOOGLE;
 import static jgc.asai.gwtoauth.shared.UrlResources.CALLBACK_URL;
 
@@ -41,35 +36,28 @@ public class BaseApp implements EntryPoint {
    * returns an error.
    */
   private final Logger logger = java.util.logging.Logger.getLogger("BaseApp");
-  private static final String SERVER_ERROR = "An error occurred while "
-          + "attempting to contact the server. Please check your network "
-          + "connection and try again.";
 
   private final GoogleAuthServiceAsync googleAuthService = GWT.create(GoogleAuthService.class);
-  private final FacebookAuthServiceAsync facebookAuthServer = GWT.create(FacebookAuthService.class);
+  private final LinkedInAuthServiceAsync linkedInAuthServer = GWT.create(LinkedInAuthService.class);
 
   private final ListBox googleApiList = new ListBox();
-  private final HorizontalPanel loginPanel = new HorizontalPanel();
-  private final Anchor signInLink = new Anchor("");
-  private final Image loginImage = new Image();
-  private final TextBox nameField = new TextBox();
+  private final ListBox linkedInApiList = new ListBox();
   private final Button googleButton = new Button("Login Google");
   private final Button toggleResponseRawNice = new Button();
   private final Button getGoogleResourceButton = new Button("Get Google Resource");
-  private final Button facebookButton = new Button("Facebook");
+  private final Button getLinkedInResourceButton = new Button("Get LinkedIn Resource");
+  private final Button linkedInButton = new Button("Login LinkedIn");
   private final Label errorLabel = new Label();
-  private final DialogBox dialogBox = new DialogBox();
   private final VerticalPanel rawResponsePanel = new VerticalPanel();
   private final VerticalPanel niceResponsePanel = new VerticalPanel();
-  private final Button closeDialogButton = new Button("Close");
-
-//  private final VerticalPanel flexTableVerticalPanel = new VerticalPanel();
 
   private final FlexTable googleDriveFlexTable = new FlexTable();
   private final FlexTable googlePlusFlexTable = new FlexTable();
+  private final FlexTable linkedInFlexTable = new FlexTable();
 
   private final CellTable<GoogleDriveFile> cellTableOfGoogleDriveFile = new CellTable<>();
   private final CellTable<GooglePlusIdentity> cellTableOfGooglePlusProfile = new CellTable<>();
+  private final CellTable<GooglePlusIdentity> cellTableOfLinkedIn = new CellTable<>();
 
   private JSONObject response;
   private Boolean niceOutput = false;
@@ -89,13 +77,11 @@ public class BaseApp implements EntryPoint {
     niceResponsePanel.setHorizontalAlignment(VerticalPanel.ALIGN_LEFT);
     niceResponsePanel.setVisible(false);
 
-//    signInLink.getElement().setClassName("login-area");
-//    signInLink.setTitle("sign out");
-//    loginImage.getElement().setClassName("login-area");
-//    loginPanel.add(signInLink);
-
     googleButton.addClickHandler(new GoogleHandler());
     googleButton.setVisible(true);
+
+    linkedInButton.addClickHandler(new LinkedInHandler());
+    linkedInButton.setVisible(true);
 
     getGoogleResourceButton.addClickHandler(new GoogleGetResourceHandler());
     getGoogleResourceButton.setVisible(false);
@@ -103,24 +89,28 @@ public class BaseApp implements EntryPoint {
     toggleResponseRawNice.addClickHandler(new ToggleResponseRawNiceHandler());
     toggleResponseRawNice.setVisible(false);
 
-    facebookButton.addClickHandler(new FacebookHandler());
-    facebookButton.setVisible(false);
+    getLinkedInResourceButton.addClickHandler(new LinkedInGetResourceHandler());
+    getLinkedInResourceButton.setVisible(false);
 
     googleApiList.addItem("Google Plus");
     googleApiList.addItem("Google Drive");
     googleApiList.setVisible(false);
 
+    linkedInApiList.addItem("LinkedIn");
+    linkedInApiList.setVisible(false);
+
     createGoogleDriveFilesTable();
     createGooglePlusProfileTable();
+    createLinkedInTable();
 
     RootPanel.get("toggleResponseRawNice").add(toggleResponseRawNice);
     RootPanel.get("rawResponsePanel").add(rawResponsePanel);
     RootPanel.get("googleApiList").add(googleApiList);
     RootPanel.get("googleButtonContainer").add(googleButton);
     RootPanel.get("getGoogleResourceButton").add(getGoogleResourceButton);
-    RootPanel.get("facebookButtonContainer").add(facebookButton);
+    RootPanel.get("linkedInButtonContainer").add(linkedInButton);
+    RootPanel.get("getLinkedInResourceButton").add(getLinkedInResourceButton);
     RootPanel.get("errorLabelContainer").add(errorLabel);
-    RootPanel.get("loginPanelContainer").add(loginPanel);
     RootPanel.get("niceResponsePanel").add(niceResponsePanel);
 
     handleRedirect();
@@ -130,29 +120,60 @@ public class BaseApp implements EntryPoint {
     logger.info("handleRedirect");
     if (Utils.redirected()){
       if (!Utils.alreadyLoggedIn()){
-        String code = Window.Location.getParameter("code");
-        String state = Window.Location.getParameter("state");
-        logger.info("code="+code);
-        logger.info("state="+state);
-        try {
-          googleAuthService.googleAccessToken(code, state, new AsyncCallback<String>() {
-            @Override
-            public void onFailure(Throwable throwable) {
-              throwable.printStackTrace();
-            }
+        String authProvider = Utils.getAuthProviderNameFromCookie();
+        logger.info("handleRedirect authProvider: "+authProvider);
+        if(authProvider.equals(GOOGLE)){
+          String code = Window.Location.getParameter("code");
+          String state = Window.Location.getParameter("state");
+          logger.info("code="+code);
+          logger.info("state="+state);
+          try {
+            googleAuthService.googleAccessToken(code, state, new AsyncCallback<String>() {
+              @Override
+              public void onFailure(Throwable throwable) {
+                throwable.printStackTrace();
+              }
 
-            @Override
-            public void onSuccess(String s) {
+              @Override
+              public void onSuccess(String s) {
 //              logger.info("Access Token="+s);
 //              rawResponsePanel.clear();
 //              rawResponsePanel.add(new HTML(s));
 //              rawResponsePanel.setVisible(true);
-              googleButton.setVisible(false);
-              getGoogleResourceButton.setVisible(true);
-              googleApiList.setVisible(true);
-            }
-          });
-        } catch (Exception e) {e.printStackTrace();}
+                googleButton.setVisible(false);
+                linkedInButton.setVisible(false);
+                getGoogleResourceButton.setVisible(true);
+                googleApiList.setVisible(true);
+              }
+            });
+          } catch (Exception e) {e.printStackTrace();}
+        }
+        if(authProvider.equals(LINKEDIN)){
+          String code = Window.Location.getParameter("code");
+          String state = Window.Location.getParameter("state");
+          logger.info("code="+code);
+          logger.info("state="+state);
+          try {
+            linkedInAuthServer.linkedInAccessToken(code, state, new AsyncCallback<String>() {
+              @Override
+              public void onFailure(Throwable throwable) {
+                throwable.printStackTrace();
+              }
+
+              @Override
+              public void onSuccess(String s) {
+                logger.info("Access Token="+s);
+//              rawResponsePanel.clear();
+//              rawResponsePanel.add(new HTML(s));
+//              rawResponsePanel.setVisible(true);
+                googleButton.setVisible(false);
+                linkedInButton.setVisible(false);
+                getLinkedInResourceButton.setVisible(true);
+                linkedInApiList.setVisible(true);
+              }
+            });
+          } catch (Exception e) {e.printStackTrace();}
+        }
       } else {logger.info("Redirected, no logged in..");}
     } else {logger.info("No redirection..");}
   }
@@ -187,14 +208,21 @@ public class BaseApp implements EntryPoint {
         populateGoogleDriveTable(GoogleDriveFile.getFileListFromJSONString(this.getResponse()));
       case Utils.GOOGLE_PLUS:
         populateGooglePlusTable(GooglePlusIdentity.getProfileFromJSONString(this.getResponse()));
+      case Utils.LINKEDIN:
+//        populateLinkedInTable(GooglePlusIdentity.getProfileFromJSONString(this.getResponse()));
     }
     this.setNiceOutput(true);
   }
 
-
   class GoogleHandler implements ClickHandler {
     public void onClick(ClickEvent event) {
       BaseApp.get().getAuthorizationUrl(GOOGLE);
+    }
+  }
+
+  class LinkedInHandler implements ClickHandler {
+    public void onClick(ClickEvent event) {
+      BaseApp.get().getAuthorizationUrl(LINKEDIN);
     }
   }
 
@@ -232,28 +260,28 @@ public class BaseApp implements EntryPoint {
     }
   }
 
-  class FacebookHandler implements ClickHandler {
-    public void onClick(ClickEvent event) {authFacebook();}
-    private void authFacebook() {
-      facebookAuthServer.facebookAuthServer(nameField.getText(), new AsyncCallback<String>() {
-        public void onFailure(Throwable caught) {
-          logger.severe("facebookAuthServer onFailure");
-          dialogBox.setText("Remote Procedure Call - Failure "+SERVER_ERROR);
-          dialogBox.center();
-          closeDialogButton.setFocus(true);
-        }
-        public void onSuccess(String result) {
-          logger.info("facebookAuthServer onSuccess");
-          dialogBox.setText("Remote Procedure Call "+result);
-          dialogBox.center();
-          closeDialogButton.setFocus(true);
-        }
-      });
+  class LinkedInGetResourceHandler implements ClickHandler {
+    public void onClick(ClickEvent event) {
+      try {
+        String apiName = Utils.getApiName(linkedInApiList.getSelectedItemText());
+        linkedInAuthServer.linkedInGetResource(apiName, new AsyncCallback<String>() {
+          @Override
+          public void onFailure(Throwable throwable) {
+            throwable.printStackTrace();
+          }
+          @Override
+          public void onSuccess(String s) {
+            logger.info("resource="+s);
+            updateResponseUI(s, apiName);
+          }
+        });
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
     }
   }
 
   public void getAuthorizationUrl(final String authProvider){
-//    String authProviderName = Utils.getAuthProviderName(authProvider);
     logger.info("Getting authorization url");
 
     final Credential credential = new Credential();
@@ -267,7 +295,27 @@ public class BaseApp implements EntryPoint {
           public void onSuccess(String authorizationUrl){
             logger.info("Authorization url: " + authorizationUrl);
             Utils.clearCookies();
-            Utils.saveAuthProvider(authProvider);
+            Utils.saveAuthProvider(GOOGLE);
+            Utils.saveRediretUrl(CALLBACK_URL);
+            Utils.redirect(authorizationUrl);
+          }
+          @Override
+          public void onFailure(Throwable caught){
+            caught.printStackTrace();
+          }
+        });
+      } catch (JGCException e) {
+        e.printStackTrace();
+      }
+    }
+    if(authProvider.equals(LINKEDIN)){
+      try {
+        linkedInAuthServer.getLinkedInAuthorizationUrl(credential, new AsyncCallback<String>(){
+          @Override
+          public void onSuccess(String authorizationUrl){
+            logger.info("Authorization url: " + authorizationUrl);
+            Utils.clearCookies();
+            Utils.saveAuthProvider(LINKEDIN);
             Utils.saveRediretUrl(CALLBACK_URL);
             Utils.redirect(authorizationUrl);
           }
@@ -412,6 +460,10 @@ public class BaseApp implements EntryPoint {
     niceResponsePanel.add(googlePlusFlexTable);
     niceResponsePanel.add(cellTableOfGooglePlusProfile);
   }
-}
+
+  private void populateLinkedInTable(GooglePlusIdentity profile){}
+  private void createLinkedInTable(){}
+
+  }
 
 

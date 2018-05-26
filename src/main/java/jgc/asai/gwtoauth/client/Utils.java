@@ -3,11 +3,6 @@ package jgc.asai.gwtoauth.client;
 import com.google.gwt.user.client.Cookies;
 import com.google.gwt.user.client.Window;
 import jgc.asai.gwtoauth.shared.UrlResources;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Logger;
 
 public class Utils {
@@ -19,7 +14,7 @@ public class Utils {
     private final static String USERNAME_COOKIE           = "gwtoauth_google_user";
     private final static String REDIRECT_URL_COOKIE       = "gwtoauth_google_redirect_url";
 
-    public final static String FACEBOOK = "facebook";
+    public final static String LINKEDIN = "linkedin";
     public final static String GOOGLE = "google";
     public final static String GOOGLE_PLUS = "google plus";
     public final static String GOOGLE_DRIVE = "google drive";
@@ -28,8 +23,8 @@ public class Utils {
 
     public static String getAuthProviderName(String authProvider){
         logger.info("getAuthProviderName");
-        if (authProvider.toLowerCase().equals(FACEBOOK))
-            return FACEBOOK;
+        if (authProvider.toLowerCase().equals(LINKEDIN))
+            return LINKEDIN;
         else if (authProvider.toLowerCase().equals(GOOGLE))
             return GOOGLE;
         return DEFAULT;
@@ -41,6 +36,8 @@ public class Utils {
             return GOOGLE_PLUS;
         else if (apiName.toLowerCase().equals(GOOGLE_DRIVE))
             return GOOGLE_DRIVE;
+        else if (apiName.toLowerCase().equals(LINKEDIN))
+            return LINKEDIN;
         return UNKNOWN;
     }
 
@@ -51,6 +48,8 @@ public class Utils {
                 return UrlResources.GOOGLE_DRIVE_FILES;
             case GOOGLE_PLUS:
                 return UrlResources.GOOGLE_PLUS_ME;
+            case LINKEDIN:
+                return UrlResources.LINKEDIN_ME;
         }
         return UNKNOWN;
     }
@@ -58,11 +57,6 @@ public class Utils {
     public static String getSessionIdFromCookie(){
         logger.info("getSessionIdFromCookie: "+Cookies.getCookie(SESSION_ID_COOKIE));
         return Cookies.getCookie(SESSION_ID_COOKIE);
-    }
-
-    public static String getAuthProviderFromCookie(){
-        logger.info("getAuthProviderFromCookie: "+Cookies.getCookie(AUTH_PROVIDER_COOKIE));
-        return Cookies.getCookie(AUTH_PROVIDER_COOKIE);
     }
 
     public static void clearCookies(){
@@ -77,19 +71,11 @@ public class Utils {
         return Cookies.getCookie(AUTH_PROVIDER_NAME_COOKIE);
     }
 
-    public static String getUsernameFromCookie(){
-        return Cookies.getCookie(USERNAME_COOKIE);
-    }
-
     public static boolean alreadyLoggedIn(){
         logger.info("alreadyLoggedIn: "+getSessionIdFromCookie());
         if (getSessionIdFromCookie() != null)
             return true;
         return false;
-    }
-
-    public static void saveSessionId(String sessionId){
-        Cookies.setCookie(SESSION_ID_COOKIE,sessionId);
     }
 
     public static void saveAuthProvider(String authProvider){
@@ -102,10 +88,6 @@ public class Utils {
     public static void saveAuthProviderName(String authProviderName){
         logger.info("saveAuthProviderName: "+authProviderName);
         Cookies.setCookie(AUTH_PROVIDER_NAME_COOKIE,authProviderName);
-    }
-
-    public static void saveUsername(String username){
-        Cookies.setCookie(USERNAME_COOKIE,username);
     }
 
     public static void saveRediretUrl(String url){
@@ -125,7 +107,7 @@ public class Utils {
 
     public static boolean redirected(){
         logger.info("redirected");
-        String authProvider = getAuthProviderFromCookie();
+        String authProvider = getAuthProviderNameFromCookie();
         if (authProvider == null){
             return false;
         }
@@ -144,13 +126,8 @@ public class Utils {
     public static void reload(){
         logger.info("reload");
         String appUrl = getRedirectUrlFromCookie();
-        String savedAuthProvider = getAuthProviderFromCookie();
 
         clearCookies();
-
-        if (savedAuthProvider.equals(DEFAULT)){
-        //    BaseApp.get().updateLoginStatus();
-        }
 
         if (appUrl != null){
             redirect(appUrl);

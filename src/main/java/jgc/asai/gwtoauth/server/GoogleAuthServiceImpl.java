@@ -34,9 +34,7 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
   private final String secretState = "secret" + new Random().nextInt(999_999);
   private final OAuth20Service service = new ServiceBuilder(clientId)
           .apiSecret(clientSecret)
-//          .scope("https://www.googleapis.com/auth/userinfo.profile")
           .scope(GOOGLE_PLUS_USER_INFO_PROFILE + " " + GOOGLE_DRIVE_FILES)
-//          .scope("profile") // replace with desired scope
           .state(secretState)
           .callback(CALLBACK_URL)
           .build(GoogleApi20.instance());
@@ -64,13 +62,12 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
     final Map<String, String> additionalParams = new HashMap<>();
     additionalParams.put("access_type", "offline");
     additionalParams.put("prompt", "consent");
-    final String authorizationUrl = service.getAuthorizationUrl(additionalParams);
-    return authorizationUrl;
+    return service.getAuthorizationUrl(additionalParams);
   }
 
   @Override
   public String googleAccessToken(String code, String secretState) throws InterruptedException, ExecutionException, IOException {
-    logger.info("googleOauthCallback code:"+code+" secretState:"+secretState);
+    logger.info("googleAccessToken code:"+code+" secretState:"+secretState);
     accessToken = service.getAccessToken(code);
     accessToken = service.refreshAccessToken(accessToken.getRefreshToken());
     return accessToken.getRawResponse();
@@ -78,7 +75,7 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
 
   @Override
   public String googleGetResource(String apiName) throws InterruptedException, ExecutionException, IOException {
-    logger.info("googleGetResource");
+    logger.info("googleGetResource: "+apiName);
     final OAuthRequest request = new OAuthRequest(Verb.GET, Utils.getUrlResource(apiName));
     service.signRequest(accessToken, request);
     final Response response = service.execute(request);
@@ -90,8 +87,6 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
     logger.info("callback url: " + credential.getRedirectUrl());
     String authorizationUrl = null;
     Token requestToken = null;
-
-    String authProvider = credential.getAuthProvider();
 
     if (service == null){
       throw new JGCException("Could not build OAuthService");
@@ -106,17 +101,6 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
       authorizationUrl = this.googleAuthServer();
       logger.info("Got Authorization URL" + authorizationUrl);
       // if the provider supports "state", save it to session
-      if (authProvider == Utils.FACEBOOK){
-        logger.info("Auth URL should have state in QUERY_STRING");
-        logger.info("Extract state from URL");
-        String state = ServerUtils.getQueryStringValueFromUrl(authorizationUrl,"state");
-        if (state != null)
-        {
-          logger.info("state: " + state);
-          logger.info("Save state to session");
-          saveStateToSession(state);
-        }
-      }
     }
     catch(Exception e)
     {
@@ -126,25 +110,5 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
 
     logger.info("Returning: " + authorizationUrl);
     return authorizationUrl;
-  }
-
-  private String escapeHtml(String html) {
-    if (html == null) {
-      return null;
-    }
-    return html.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(
-            ">", "&gt;");
-  }
-
-  private void saveStateToSession(String state) throws Exception{
-    HttpSession session = getHttpSession();
-    if (session == null){
-      throw new Exception("Sesion Expirada bitch");
-    }
-    session.setAttribute(SESSION_NONCE,state);
-  }
-
-  private HttpSession getHttpSession(){
-    return getThreadLocalRequest().getSession();
   }
 }

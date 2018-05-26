@@ -7,8 +7,8 @@ public class Credential implements Serializable
     private String authProviderName;
     private String authProvider;
     private String redirectUrl;
-    private String state;        // facebook
-    private String verifier;     // code for facebook
+    private String state;        // LinkedIn
+    private String verifier;     // code for LinkedIn
     private String loginName;
     private String password;
     private String email;

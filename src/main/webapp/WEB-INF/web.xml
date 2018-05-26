@@ -11,8 +11,8 @@
     <servlet-class>jgc.asai.gwtoauth.server.GoogleAuthServiceImpl</servlet-class>
   </servlet>
   <servlet>
-    <servlet-name>facebookAuthServlet</servlet-name>
-    <servlet-class>jgc.asai.gwtoauth.server.FacebookAuthServiceImpl</servlet-class>
+    <servlet-name>linkedInAuthServlet</servlet-name>
+    <servlet-class>jgc.asai.gwtoauth.server.LinkedInAuthServiceImpl</servlet-class>
   </servlet>
 
   <!-- Servlet Mappings -->
@@ -21,8 +21,8 @@
     <url-pattern>/baseapp/googleAuth</url-pattern>
   </servlet-mapping>
   <servlet-mapping>
-    <servlet-name>facebookAuthServlet</servlet-name>
-    <url-pattern>/baseapp/facebookAuth</url-pattern>
+    <servlet-name>linkedInAuthServlet</servlet-name>
+    <url-pattern>/baseapp/linkedInAuth</url-pattern>
   </servlet-mapping>
 
   <!-- Default page to serve -->
