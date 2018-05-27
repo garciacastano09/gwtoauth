@@ -7,10 +7,7 @@ import com.github.scribejava.core.oauth.OAuth20Service;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import jgc.asai.gwtoauth.client.GoogleAuthService;
 import jgc.asai.gwtoauth.client.Utils;
-import jgc.asai.gwtoauth.shared.Credential;
 import jgc.asai.gwtoauth.shared.JGCException;
-
-import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,22 +37,6 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
           .build(GoogleApi20.instance());
   private OAuth2AccessToken accessToken;
 
-  private final String SESSION_ID             = "GWTOAuthLoginDemo_sessionid";
-  private final String SESSION_REQUEST_TOKEN  = "GWTOAuthLoginDemo_request_token";
-  private final String SESSION_NONCE          = "GWTOAuthLoginDemo_nonce";
-  private final String SESSION_PROTECTED_URL  = "GWTOAuthLoginDemo_protected_url";
-  private final String SESSION_ACCESS_TOKEN   = "GWTOAuthLoginDemo_access_token";
-  private final String SESSION_AUTH_PROVIDER  = "GWTOAuthLoginDemo_auth_provider";
-
-  private final String DEFAULT_USERNAME = "test";
-  private final String DEFAULT_PASSWORD = "secret";
-  private final String DEFAULT_JSON = "{" +
-          "\n" +
-          "  \":username:\" " + "\"" + DEFAULT_USERNAME + "\""+
-          "\n" +
-          "}";
-
-
   @Override
   public String googleAuthServer(){
     logger.info("googleAuthServer");
@@ -83,8 +64,8 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
     return response.getBody();
   }
 
-  public String getGoogleAuthorizationUrl(Credential credential) throws JGCException {
-    logger.info("callback url: " + credential.getRedirectUrl());
+  public String getGoogleAuthorizationUrl() throws JGCException {
+    logger.info("getGoogleAuthorizationUrl");
     String authorizationUrl = null;
     Token requestToken = null;
 
@@ -100,7 +81,6 @@ public class GoogleAuthServiceImpl extends RemoteServiceServlet implements Googl
       }
       authorizationUrl = this.googleAuthServer();
       logger.info("Got Authorization URL" + authorizationUrl);
-      // if the provider supports "state", save it to session
     }
     catch(Exception e)
     {

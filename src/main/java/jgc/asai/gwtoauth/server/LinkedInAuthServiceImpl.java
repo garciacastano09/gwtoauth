@@ -1,17 +1,12 @@
 package jgc.asai.gwtoauth.server;
 
-import com.github.scribejava.apis.LinkedInApi;
-import com.github.scribejava.apis.GoogleApi20;
 import com.github.scribejava.apis.LinkedInApi20;
 import com.github.scribejava.core.builder.ServiceBuilder;
 import com.github.scribejava.core.model.*;
-import com.github.scribejava.core.oauth.OAuth10aService;
 import com.github.scribejava.core.oauth.OAuth20Service;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 import jgc.asai.gwtoauth.client.LinkedInAuthService;
-import jgc.asai.gwtoauth.client.GoogleAuthService;
 import jgc.asai.gwtoauth.client.Utils;
-import jgc.asai.gwtoauth.shared.Credential;
 import jgc.asai.gwtoauth.shared.JGCException;
 
 import javax.servlet.http.HttpSession;
@@ -42,21 +37,7 @@ public class LinkedInAuthServiceImpl extends RemoteServiceServlet implements Lin
           .state(secretState)
           .build(LinkedInApi20.instance());
   private OAuth2AccessToken accessToken;
-
-  private final String SESSION_ID = "GWTOAuthLoginDemo_sessionid";
-  private final String SESSION_REQUEST_TOKEN = "GWTOAuthLoginDemo_request_token";
-  private final String SESSION_NONCE = "GWTOAuthLoginDemo_nonce";
-  private final String SESSION_PROTECTED_URL = "GWTOAuthLoginDemo_protected_url";
-  private final String SESSION_ACCESS_TOKEN = "GWTOAuthLoginDemo_access_token";
-  private final String SESSION_AUTH_PROVIDER = "GWTOAuthLoginDemo_auth_provider";
-
-  private final String DEFAULT_USERNAME = "test";
-  private final String DEFAULT_PASSWORD = "secret";
-  private final String DEFAULT_JSON = "{" +
-          "\n" +
-          "  \":username:\" " + "\"" + DEFAULT_USERNAME + "\"" +
-          "\n" +
-          "}";
+  private final String SESSION_NONCE = "gwtoauth_nonce";
 
   @Override
   public String linkedInAuthServer() {
@@ -71,7 +52,6 @@ public class LinkedInAuthServiceImpl extends RemoteServiceServlet implements Lin
   public String linkedInAccessToken(String code, String secretState) throws InterruptedException, ExecutionException, IOException {
     logger.info("LinkedInAccessToken code:" + code + " secretState:" + secretState);
     accessToken = service.getAccessToken(code);
-//    accessToken = service.refreshAccessToken(accessToken.getRefreshToken());
     return accessToken.getRawResponse();
   }
 
@@ -85,8 +65,8 @@ public class LinkedInAuthServiceImpl extends RemoteServiceServlet implements Lin
     return response.getBody();
   }
 
-  public String getLinkedInAuthorizationUrl(Credential credential) throws JGCException {
-    logger.info("getLinkedInAuthorizationUrl: " + credential);
+  public String getLinkedInAuthorizationUrl() throws JGCException {
+    logger.info("getLinkedInAuthorizationUrl");
     Token requestToken = null;
     String authorizationUrl;
 

@@ -1,9 +1,6 @@
 package jgc.asai.gwtoauth.shared;
 
 import com.google.gwt.json.client.JSONObject;
-import com.google.gwt.json.client.JSONValue;
-
-import java.util.ArrayList;
 
 public class GooglePlusIdentity {
     private String kind;

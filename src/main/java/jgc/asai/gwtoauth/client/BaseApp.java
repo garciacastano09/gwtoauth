@@ -293,13 +293,9 @@ public class BaseApp implements EntryPoint {
   public void getAuthorizationUrl(final String authProvider){
     logger.info("Getting authorization url");
 
-    final Credential credential = new Credential();
-    credential.setRedirectUrl(CALLBACK_URL);
-    credential.setAuthProvider(authProvider);
-
     if(authProvider.equals(GOOGLE)){
       try {
-        googleAuthService.getGoogleAuthorizationUrl(credential, new AsyncCallback<String>(){
+        googleAuthService.getGoogleAuthorizationUrl(new AsyncCallback<String>(){
           @Override
           public void onSuccess(String authorizationUrl){
             logger.info("Authorization url: " + authorizationUrl);
@@ -319,7 +315,7 @@ public class BaseApp implements EntryPoint {
     }
     if(authProvider.equals(LINKEDIN)){
       try {
-        linkedInAuthServer.getLinkedInAuthorizationUrl(credential, new AsyncCallback<String>(){
+        linkedInAuthServer.getLinkedInAuthorizationUrl(new AsyncCallback<String>(){
           @Override
           public void onSuccess(String authorizationUrl){
             logger.info("Authorization url: " + authorizationUrl);
