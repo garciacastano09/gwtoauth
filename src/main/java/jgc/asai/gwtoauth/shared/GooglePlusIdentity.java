@@ -142,19 +142,19 @@ public class GooglePlusIdentity {
 
     public static GooglePlusIdentity getProfileFromJSONString(JSONObject j){
         return new GooglePlusIdentity(
-                j.get("kind").toString(),
-                j.get("etag").toString(),
-                j.get("objectType").toString(),
-                j.get("id").toString(),
-                j.get("displayName").toString(),
-                j.get("name").isObject().get("familyName").toString(),
-                j.get("name").isObject().get("givenName").toString(),
-                j.get("url").toString(),
-                j.get("image").isObject().get("url").toString(),
-                j.get("isPlusUser").toString(),
-                j.get("language").toString(),
-                j.get("circledByCount").toString(),
-                j.get("verified").toString()
+            String.valueOf(j.get("kind")),
+            String.valueOf(j.get("etag")),
+            String.valueOf(j.get("objectType")),
+            String.valueOf(j.get("id")),
+            String.valueOf(j.get("displayName")),
+            String.valueOf(j.get("name").isObject().get("familyName")),
+            String.valueOf(j.get("name").isObject().get("givenName")),
+            String.valueOf(j.get("url")),
+            String.valueOf(j.get("image").isObject().get("url")),
+            String.valueOf(j.get("isPlusUser")),
+            String.valueOf(j.get("language")),
+            String.valueOf(j.get("circledByCount")),
+            String.valueOf(j.get("verified"))
         );
     }
 

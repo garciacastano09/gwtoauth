@@ -21,6 +21,8 @@ public class GoogleDriveFile {
         this.mimeType = mimeType;
     }
 
+    public GoogleDriveFile(){}
+
     public String getKind() {
         return kind;
     }
@@ -56,13 +58,22 @@ public class GoogleDriveFile {
     public static ArrayList<GoogleDriveFile> getFileListFromJSONString(JSONObject j){
         ArrayList<GoogleDriveFile> r = new ArrayList<>();
         JSONValue files = j.get("files");
-        for (int i = 0; i < files.isArray().size(); i++) {
-            JSONValue file = files.isArray().get(i);
-            r.add(new GoogleDriveFile(
-                file.isObject().get("kind").toString(),
-                file.isObject().get("id").toString(),
-                file.isObject().get("name").toString(),
-                file.isObject().get("mimeType").toString()));
+        if (files != null && files.isArray().size() > 0){
+            for (int i = 0; i < files.isArray().size(); i++) {
+                JSONValue file = files.isArray().get(i);
+                GoogleDriveFile item = new GoogleDriveFile();
+                if (file != null && file.isObject() != null){
+                    if (file.isObject().get("kind") != null)
+                        item.setKind(String.valueOf(file.isObject().get("kind")));
+                    if (file.isObject().get("id") != null)
+                        item.setId(String.valueOf(file.isObject().get("id")));
+                    if (file.isObject().get("name") != null)
+                        item.setName(String.valueOf(file.isObject().get("name")));
+                    if (file.isObject().get("mimeType") != null)
+                        item.setMimeType(String.valueOf(file.isObject().get("mimeType")));
+                }
+                r.add(item);
+            }
         }
         return r;
     }

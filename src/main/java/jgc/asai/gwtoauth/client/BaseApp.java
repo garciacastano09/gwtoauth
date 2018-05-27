@@ -8,10 +8,7 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.*;
-import jgc.asai.gwtoauth.shared.Credential;
-import jgc.asai.gwtoauth.shared.GoogleDriveFile;
-import jgc.asai.gwtoauth.shared.GooglePlusIdentity;
-import jgc.asai.gwtoauth.shared.JGCException;
+import jgc.asai.gwtoauth.shared.*;
 import com.google.gwt.core.client.JsonUtils;
 import java.util.ArrayList;
 import java.util.logging.Logger;
@@ -42,6 +39,7 @@ public class BaseApp implements EntryPoint {
 
   private final ListBox googleApiList = new ListBox();
   private final ListBox linkedInApiList = new ListBox();
+  private final Button goBackButton = new Button("Go Back");
   private final Button googleButton = new Button("Login Google");
   private final Button toggleResponseRawNice = new Button();
   private final Button getGoogleResourceButton = new Button("Get Google Resource");
@@ -57,7 +55,7 @@ public class BaseApp implements EntryPoint {
 
   private final CellTable<GoogleDriveFile> cellTableOfGoogleDriveFile = new CellTable<>();
   private final CellTable<GooglePlusIdentity> cellTableOfGooglePlusProfile = new CellTable<>();
-  private final CellTable<GooglePlusIdentity> cellTableOfLinkedIn = new CellTable<>();
+  private final CellTable<LinkedInProfile> cellTableOfLinkedIn = new CellTable<>();
 
   private JSONObject response;
   private Boolean niceOutput = false;
@@ -76,6 +74,9 @@ public class BaseApp implements EntryPoint {
 
     niceResponsePanel.setHorizontalAlignment(VerticalPanel.ALIGN_LEFT);
     niceResponsePanel.setVisible(false);
+
+    goBackButton.addClickHandler(new GoBackHandler());
+    googleButton.setVisible(false);
 
     googleButton.addClickHandler(new GoogleHandler());
     googleButton.setVisible(true);
@@ -112,6 +113,7 @@ public class BaseApp implements EntryPoint {
     RootPanel.get("getLinkedInResourceButton").add(getLinkedInResourceButton);
     RootPanel.get("errorLabelContainer").add(errorLabel);
     RootPanel.get("niceResponsePanel").add(niceResponsePanel);
+    RootPanel.get("goBack").add(goBackButton);
 
     handleRedirect();
   }
@@ -136,14 +138,13 @@ public class BaseApp implements EntryPoint {
 
               @Override
               public void onSuccess(String s) {
-//              logger.info("Access Token="+s);
-//              rawResponsePanel.clear();
-//              rawResponsePanel.add(new HTML(s));
-//              rawResponsePanel.setVisible(true);
+                logger.info("Access Token="+s);
                 googleButton.setVisible(false);
                 linkedInButton.setVisible(false);
                 getGoogleResourceButton.setVisible(true);
                 googleApiList.setVisible(true);
+                linkedInApiList.setVisible(false);
+                goBackButton.setVisible(true);
               }
             });
           } catch (Exception e) {e.printStackTrace();}
@@ -163,19 +164,17 @@ public class BaseApp implements EntryPoint {
               @Override
               public void onSuccess(String s) {
                 logger.info("Access Token="+s);
-//              rawResponsePanel.clear();
-//              rawResponsePanel.add(new HTML(s));
-//              rawResponsePanel.setVisible(true);
                 googleButton.setVisible(false);
                 linkedInButton.setVisible(false);
                 getLinkedInResourceButton.setVisible(true);
                 linkedInApiList.setVisible(true);
+                goBackButton.setVisible(true);
               }
             });
           } catch (Exception e) {e.printStackTrace();}
         }
       } else {logger.info("Redirected, no logged in..");}
-    } else {logger.info("No redirection..");}
+    } else {logger.info("No redirection.."); goBackButton.setVisible(false);}
   }
 
   public Boolean getNiceOutput() {
@@ -200,18 +199,22 @@ public class BaseApp implements EntryPoint {
   }
 
   public void updateResponseUI(String r, String apiName){
+    logger.info("updateResponseUI: "+apiName);
     this.setResponse(new JSONObject(JsonUtils.safeEval(r)));
     rawResponsePanel.clear();
     rawResponsePanel.add(new HTML(JsonUtils.escapeValue(r)));
+    this.setNiceOutput(true);
     switch (apiName){
       case Utils.GOOGLE_DRIVE:
         populateGoogleDriveTable(GoogleDriveFile.getFileListFromJSONString(this.getResponse()));
+        break;
       case Utils.GOOGLE_PLUS:
         populateGooglePlusTable(GooglePlusIdentity.getProfileFromJSONString(this.getResponse()));
+        break;
       case Utils.LINKEDIN:
-//        populateLinkedInTable(GooglePlusIdentity.getProfileFromJSONString(this.getResponse()));
+        populateLinkedInTable(LinkedInProfile.getProfileFromJSONString(this.getResponse()));
+        break;
     }
-    this.setNiceOutput(true);
   }
 
   class GoogleHandler implements ClickHandler {
@@ -223,6 +226,12 @@ public class BaseApp implements EntryPoint {
   class LinkedInHandler implements ClickHandler {
     public void onClick(ClickEvent event) {
       BaseApp.get().getAuthorizationUrl(LINKEDIN);
+    }
+  }
+
+  class GoBackHandler implements ClickHandler {
+    public void onClick(ClickEvent event) {
+      Utils.redirect(CALLBACK_URL);
     }
   }
 
@@ -370,19 +379,6 @@ public class BaseApp implements EntryPoint {
 
     final SingleSelectionModel<GoogleDriveFile> selectionModel = new SingleSelectionModel<>();
     cellTableOfGoogleDriveFile.setSelectionModel(selectionModel);
-//    selectionModel.addSelectionChangeHandler(event -> {
-//      GoogleDriveFile selectedGoogleDriveFile = selectionModel.getSelectedObject();
-//      if (selectedGoogleDriveFile != null) {
-//        Window.alert("Selected: First line: " + selectedGoogleDriveFile.getId() + ", Second line: " + selectedGoogleDriveFile.getName());
-//      }
-//    });
-
-//    List<GoogleDriveFile> addresses = new ArrayList<GoogleDriveFile>() {
-//      {
-//        add(new GoogleDriveFile("Cell Table", "First line", "Oxford", "UK"));
-//        add(new GoogleDriveFile("Cell Table", "Second line", "Cambrige", "UK"));
-//      }
-//    };
   }
 
   private void populateGoogleDriveTable(ArrayList<GoogleDriveFile> files){
@@ -461,9 +457,71 @@ public class BaseApp implements EntryPoint {
     niceResponsePanel.add(cellTableOfGooglePlusProfile);
   }
 
-  private void populateLinkedInTable(GooglePlusIdentity profile){}
-  private void createLinkedInTable(){}
+  private void createLinkedInTable(){
+    // The policy that determines how keyboard selection will work. Keyboard
+    // selection is enabled.
+    cellTableOfLinkedIn.setKeyboardSelectionPolicy(KeyboardSelectionPolicy.ENABLED);
 
+    // Add a text columns to show the details.
+    TextColumn<LinkedInProfile> firstName = new TextColumn<LinkedInProfile>() {
+      @Override
+      public String getValue(LinkedInProfile object) {
+        return object.getFirstName();
+      }
+    };
+    cellTableOfLinkedIn.addColumn(firstName, "First Name");
+
+    TextColumn<LinkedInProfile> lastName = new TextColumn<LinkedInProfile>() {
+      @Override
+      public String getValue(LinkedInProfile object) {
+        return object.getLastName();
+      }
+    };
+    cellTableOfLinkedIn.addColumn(lastName, "Last Name");
+
+    TextColumn<LinkedInProfile> emailAddress = new TextColumn<LinkedInProfile>() {
+      @Override
+      public String getValue(LinkedInProfile object) {
+        return object.getEmailAddress();
+      }
+    };
+    cellTableOfLinkedIn.addColumn(emailAddress, "Email Address");
+
+    TextColumn<LinkedInProfile> industry = new TextColumn<LinkedInProfile>() {
+      @Override
+      public String getValue(LinkedInProfile object) {
+        return object.getIndustry();
+      }
+    };
+    cellTableOfLinkedIn.addColumn(industry, "Industry");
+
+    TextColumn<LinkedInProfile> currentPositionCompany = new TextColumn<LinkedInProfile>() {
+      @Override
+      public String getValue(LinkedInProfile object) {
+        return object.getCurrentPositionCompany();
+      }
+    };
+    cellTableOfLinkedIn.addColumn(currentPositionCompany, "Current Company");
+
+    TextColumn<LinkedInProfile> pictureUrl = new TextColumn<LinkedInProfile>() {
+      @Override
+      public String getValue(LinkedInProfile object) {
+        return object.getPictureUrl();
+      }
+    };
+    cellTableOfLinkedIn.addColumn(pictureUrl, "Picture URL");
+
+    final SingleSelectionModel<LinkedInProfile> selectionModel = new SingleSelectionModel<>();
+    cellTableOfLinkedIn.setSelectionModel(selectionModel);
   }
 
-
+  private void populateLinkedInTable(LinkedInProfile profile){
+    ArrayList<LinkedInProfile> p = new ArrayList<>();
+    p.add(profile);
+    cellTableOfLinkedIn.setRowCount(1, true);
+    cellTableOfLinkedIn.setRowData(0, p);
+    niceResponsePanel.clear();
+    niceResponsePanel.add(linkedInFlexTable);
+    niceResponsePanel.add(cellTableOfLinkedIn);
+  }
+}
